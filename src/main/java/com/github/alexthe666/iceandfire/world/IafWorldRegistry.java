@@ -47,7 +47,6 @@ import net.minecraft.world.IWorld;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.DimensionSettings;
 import net.minecraft.world.gen.GenerationStage;
-import net.minecraft.world.gen.WorldGenRegion;
 import net.minecraft.world.gen.blockplacer.SimpleBlockPlacer;
 import net.minecraft.world.gen.blockstateprovider.SimpleBlockStateProvider;
 import net.minecraft.world.gen.feature.BlockClusterFeatureConfig;
@@ -302,8 +301,8 @@ public class IafWorldRegistry {
         }
     }
     public static boolean isFarEnoughFromDangerousGen(IWorld world, BlockPos pos) {
-        boolean canGen = true;
-        IafWorldData data = IafWorldData.get(((WorldGenRegion) world).getWorld());
+        /*boolean canGen = true;
+        IafWorldData data = IafWorldData.get(world.getWorld());
         if (data != null) {
             BlockPos last = data.lastGeneratedDangerousStructure;
             canGen = last.distanceSq(pos) > IafConfig.dangerousWorldGenSeparationLimit * IafConfig.dangerousWorldGenSeparationLimit;
@@ -311,7 +310,8 @@ public class IafWorldRegistry {
                 data.setLastGeneratedDangerousStructure(pos);
             }
         }
-        return canGen;
+        return canGen;*/
+        return true;
     }
 
     public static HashMap<String, Boolean> LOADED_FEATURES;

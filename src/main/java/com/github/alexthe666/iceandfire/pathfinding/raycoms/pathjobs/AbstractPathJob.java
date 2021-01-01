@@ -42,7 +42,6 @@ public abstract class AbstractPathJob implements Callable<Path> {
     public static Set<Node> lastDebugNodesPath;
 
     protected final BlockPos start;
-    protected final BlockPos end;
 
     protected final IWorldReader world;
     protected final PathResult result;
@@ -125,12 +124,12 @@ public abstract class AbstractPathJob implements Callable<Path> {
         this.world = new ChunkCache(world, new BlockPos(minX, MIN_Y, minZ), new BlockPos(maxX, MAX_Y, maxZ), range);
 
         this.start = new BlockPos(start);
-        this.end = new BlockPos(end);
         this.maxRange = range;
 
         this.result = result;
 
         allowJumpPointSearchTypeWalk = false;
+
         if (Pathfinding.isDebug()) {
             debugDrawEnabled = true;
             debugNodesVisited = new HashSet<>();
@@ -164,12 +163,12 @@ public abstract class AbstractPathJob implements Callable<Path> {
         this.world = new ChunkCache(world, new BlockPos(minX, MIN_Y, minZ), new BlockPos(maxX, MAX_Y, maxZ), range);
 
         this.start = startRestriction;
-        this.end = new BlockPos(endRestriction);
         this.maxRange = range;
 
         this.result = result;
 
         allowJumpPointSearchTypeWalk = false;
+
         if (Pathfinding.isDebug()) {
             debugDrawEnabled = true;
             debugNodesVisited = new HashSet<>();
@@ -436,7 +435,6 @@ public abstract class AbstractPathJob implements Callable<Path> {
 
             if (!xzRestricted || (currentNode.pos.getX() >= minX && currentNode.pos.getX() <= maxX && currentNode.pos.getZ() >= minZ && currentNode.pos.getZ() <= maxZ)) {
                 walkCurrentNode(currentNode);
-
             }
         }
 
@@ -515,6 +513,7 @@ public abstract class AbstractPathJob implements Callable<Path> {
             walk(currentNode, BLOCKPOS_WEST);
         }
     }
+
     private boolean onLadderGoingDown(final Node currentNode, final BlockPos dPos) {
         return (dPos.getY() <= 0 || dPos.getX() != 0 || dPos.getZ() != 0) && isLadder(currentNode.pos.down());
     }
@@ -530,11 +529,7 @@ public abstract class AbstractPathJob implements Callable<Path> {
     }
 
     private Node getAndSetupStartNode() {
-        Node startNode = new Node(start, computeHeuristic(start));
-        if (pathingOptions.isFlying()){
-            startNode = new Node(end, computeHeuristic(end));
-        }
-
+        final Node startNode = new Node(start, computeHeuristic(start));
 
         if (isLadder(start)) {
             startNode.setLadder();
@@ -753,11 +748,13 @@ public abstract class AbstractPathJob implements Callable<Path> {
 
         return true;
     }
+
     private void performJumpPointSearch(final Node parent, final BlockPos dPos, final Node node) {
         if (allowJumpPointSearchTypeWalk && node.getHeuristic() <= parent.getHeuristic()) {
             walk(node, dPos);
         }
     }
+
     private Node createNode(
             final Node parent, final BlockPos pos, final int nodeKey,
             final boolean isSwimming, final double heuristic, final double cost, final double score) {
@@ -819,24 +816,14 @@ public abstract class AbstractPathJob implements Callable<Path> {
 
         //  Do we have something to stand on in the target space?
         final BlockState below = world.getBlockState(pos.down());
-        if(pathingOptions.isFlying()){
-             final SurfaceType flyability = isFlyable(below, pos);
-             if (flyability == SurfaceType.FLYABLE){
-                 return pos.getY();
-             }
-             else if(flyability == SurfaceType.NOT_PASSABLE){
-                 return -1;
-             }
+        final SurfaceType walkability = isWalkableSurface(below, pos);
+        if (walkability == SurfaceType.WALKABLE) {
+            //  Level path
+            return pos.getY();
+        } else if (walkability == SurfaceType.NOT_PASSABLE) {
+            return -1;
         }
-        else{
-            final SurfaceType walkability = isWalkableSurface(below, pos);
-            if (walkability == SurfaceType.WALKABLE) {
-                //  Level path
-                return pos.getY();
-            } else if (walkability == SurfaceType.NOT_PASSABLE) {
-                return -1;
-            }
-        }
+
         return handleNotStanding(parent, pos, below);
     }
 
@@ -1084,27 +1071,6 @@ public abstract class AbstractPathJob implements Callable<Path> {
      * @return true if the block at that location can be walked on.
      */
 
-    protected SurfaceType isFlyable(final BlockState blockState, final BlockPos pos){
-        final Block block = blockState.getBlock();
-        if (block instanceof FenceBlock
-                || block instanceof FenceGateBlock
-                || block instanceof WallBlock
-                || block instanceof FireBlock
-                || block instanceof CampfireBlock
-                || block instanceof BambooBlock
-                || (blockState.getShape(world, pos).getEnd(Direction.Axis.Y) > 1.0)) {
-            return SurfaceType.NOT_PASSABLE;
-        }
-        final FluidState fluid = world.getFluidState(pos);
-        if (fluid != null && !fluid.isEmpty() && (fluid.getFluid() == Fluids.LAVA || fluid.getFluid() == Fluids.FLOWING_LAVA)) {
-            return SurfaceType.NOT_PASSABLE;
-        }
-        if (isPassable(blockState,pos)){
-            return SurfaceType.FLYABLE;
-        }
-        return SurfaceType.DROPABLE;
-    }
-
     protected SurfaceType isWalkableSurface(final BlockState blockState, final BlockPos pos) {
         final Block block = blockState.getBlock();
         if (block instanceof FenceBlock
@@ -1165,7 +1131,6 @@ public abstract class AbstractPathJob implements Callable<Path> {
     protected enum SurfaceType {
         WALKABLE,
         DROPABLE,
-        NOT_PASSABLE,
-        FLYABLE
+        NOT_PASSABLE
     }
 }

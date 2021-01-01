@@ -163,7 +163,7 @@ public class ContainerLectern extends Container {
                         ((TileEntityLectern) IceAndFire.PROXY.getRefrencedTE()).randomizePages(itemstack, itemstack1);
                     }
                 }
-                if (!playerIn.isCreative()) {
+                if (!playerIn.isCreative() && didEnchant) {
                     itemstack1.shrink(i);
                     if (itemstack1.isEmpty()) {
                         this.tileFurnace.setInventorySlotContents(1, ItemStack.EMPTY);
