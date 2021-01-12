@@ -1,25 +1,18 @@
 buildscript {
-  repositories {
-    mavenCentral()
-    maven {
-      name = "forge"
-      url = "http://files.minecraftforge.net/maven"
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        jcenter()
+        mavenCentral()
     }
-    maven {
-      name = "sonatype"
-      url = "https://oss.sonatype.org/content/repositories/snapshots/"
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:3.+'
     }
-    maven {
-      name = "CurseForge"
-      url = "https://minecraft.curseforge.com/api/maven/"
-    }
-  }
-  dependencies {
-    classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
-  }
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
-//Only edit below this line, the above code adds and enables the nessasary things for Forge to be setup.
+
+apply plugin: 'net.minecraftforge.gradle'
+// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
 
 version = "1.8.4"
 group= "iceandfire"
@@ -27,10 +20,39 @@ archivesBaseName = "iceandfire"
 sourceCompatibility = targetCompatibility = "1.8"
 
 minecraft {
-    version = "1.12.2-14.23.5.2768"
-    runDir = "run"
-    mappings = "stable_39"
-    makeObfSourceJar = true
+    // The mappings can be changed at any time, and must be in the following format.
+    // snapshot_YYYYMMDD   Snapshot are built nightly.
+    // stable_#            Stables are built at the discretion of the MCP team.
+    // Use non-default mappings at your own risk. they may not always work.
+    // Simply re-run your setup task after changing the mappings to update your workspace.
+    //mappings channel: 'snapshot', version: '20171003-1.12'
+    mappings channel: 'snapshot', version: '20180812-1.12'
+    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
+
+    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    // Default run configurations.
+    // These can be tweaked, removed, or duplicated as needed.
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+        }
+
+        server {
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+        }
+    }
 }
 
 repositories {
@@ -80,49 +102,36 @@ repositories {
 }
 
 dependencies {
-    deobfCompile "net.ilexiconn:llibrary:1.7.9-1.12.2"
-    deobfCompile "slimeknights.mantle:Mantle:1.12-1.3.1.21"
-    deobfCompile "slimeknights:TConstruct:1.12.2-2.9.1.70"
-    deobfCompile "mcp.mobius.waila:Hwyla:1.8.25-B40_1.12"
+    minecraft 'net.minecraftforge:forge:1.12.2-14.23.5.2855'
+    compileOnly  fg.deobf("net.ilexiconn:llibrary:1.7.9-1.12.2")
+    compileOnly  fg.deobf("slimeknights.mantle:Mantle:1.12-1.3.1.21")
+    compileOnly  fg.deobf("slimeknights:TConstruct:1.12.2-2.9.1.70")
+    compileOnly  fg.deobf("mcp.mobius.waila:Hwyla:1.8.25-B40_1.12")
     runtime "mezz.jei:jei_1.12.2:4.9.1.181"
-    deobfProvided "mezz.jei:jei_1.12.2:4.9.1.181:api"
-    compile "baubles:Baubles:1.12:1.5.2"
-    compile "thaumcraft:Thaumcraft:1.12.2:6.1.BETA26"
-    compile "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.6.465"
-    deobfCompile "mcjty.theoneprobe:TheOneProbe-1.12:1.12-1.4.28-17"
+    compileOnly fg.deobf("mezz.jei:jei_1.12.2:4.9.1.181:api")
+    compileOnly "baubles:Baubles:1.12:1.5.2"
+    compileOnly  "thaumcraft:Thaumcraft:1.12.2:6.1.BETA26"
+    compileOnly  "CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.6.465"
+    compileOnly  fg.deobf("mcjty.theoneprobe:TheOneProbe-1.12:1.12-1.4.28-17")
 }
 
-processResources
-{
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-                
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
-    }
-        
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
-    }
-}
-
-minecraft.coreMod = "com.github.alexthe666.iceandfire.asm.IceAndFirePlugin"
 
 jar {
     manifest {
         attributes 'FMLCorePlugin': "com.github.alexthe666.iceandfire.asm.IceAndFirePlugin", 'FMLCorePluginContainsFMLMod': true
     }
 }
+jar.finalizedBy('reobfJar')
 
-
-task devJar(type: Jar) {
-    classifier = "dev"
-    from sourceSets.main.output
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
+    }
 }
-
